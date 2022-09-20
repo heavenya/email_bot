@@ -5,6 +5,7 @@ import datetime as datetime
 import pytz
 import us
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.select import Select
 from selenium.webdriver.support.ui import WebDriverWait
@@ -13,19 +14,20 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException, \
     ElementNotInteractableException, TimeoutException
 from threading import Thread
+import os
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South Carolina', 'West Virginia', 'Georgia',
           'Oklahoma', 'North Carolina', 'Texas', 'Utah', 'Kentucky', 'Virginia', 'Missouri', 'South Dakota', 'Ohio',
           'New Mexico', 'Iowa', 'Kansas', 'New Jerse', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
-          'Arizona'
+          'Arizona',
           'District of Columbia', 'Michigan', 'North Dakota', 'Pennsylvania', 'Delaware', 'Idaho', 'Illinois',
           'California',
           'Minnesota', 'Nevada', 'Rhode Island', 'Montana', 'Oregon', 'Colorado', 'Hawaii', 'New York', 'Alaska',
           'Washington',
           'Wisconsin', 'Connecticut', 'Maine', 'Vermont', 'Massachusetts', 'New Hampshire'
           ]
-
-# list_lenght = range(len(states))
 
 base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituality--events/christian"
 
@@ -38,7 +40,7 @@ event_state_urls = defaultdict(list)
 next_state_to_search = ''
 
 FIRST_TIME = datetime.time(11, 00, 00)
-SECOND_TIME = datetime.time(13, 00, 00)  # use 24 hours format
+SECOND_TIME = datetime.time(13, 00, 00)
 THIRD_TIME = datetime.time(14, 00, 00)
 FOURTH_TIME = datetime.time(16, 30, 00)
 
@@ -49,73 +51,114 @@ def calc_time_diff_in_secs(myTime, stateTime):
             - datetime.datetime.combine(datetime.date.today(), stateTime)
     if delta.total_seconds() <= 0:
         print('Time is less; adding up.. ' + str(delta.total_seconds() + 24 * 60 * 60))
-        return 10
+        return delta.total_seconds() + 24 * 60 * 6
         # delta.total_seconds() + 24 * 60 * 60
     else:
         print('Time is okay; time to wait before sending: ' + str(delta.total_seconds()))
-        return 10
+        return delta.total_seconds()
         # delta.total_seconds()
+
+
+def notify_slack_bot(message, shot=None):
+    """Sends a message and or screenshot to a Slack Channel"""
+    client = WebClient(token=os.environ.get("SLACK_KEY")) # Todo: use env for this
+
+    try:
+        if shot is None:
+            response = client.chat_meMessage(
+                channel='#event-outreach-automation',
+                text=message
+            )
+        else:
+            filepath = str(shot) + '.png'
+            response = client.files_upload(
+                channels='#event-outreach-automation',
+                title='Update',
+                file=filepath,
+                initial_comment=message
+            )
+    except SlackApiError as e:
+        print(f"Got an error: {e.response['error']}")
 
 
 class EventBriteMailingBot:
 
     def __init__(self):
         """Initialization"""
-        self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe')  # run this remotely
+        self.options = Options()
+        self.options.add_argument('--headless')
+        self.options.add_argument('--disable-gpu')
+        self.options.add_argument("disable-infobars")
+        self.options.add_argument("--disable-extensions")
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--no-sandbox")
+        self.options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+        self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=self.options)
+        # self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe')  # run this remotely
 
     def location_search(self):
+        """Goes through states list, searching for events not in already searched csv"""
         global event_state_urls
         global events_link
         global next_state_to_search
-        """Goes through states list, searching for events not in already searched csv"""
-        # Check if state has been searched before performing a search
-        # if state has been searched make sure that all pages in the state has
-        # been searched too.
-        self.driver.get(base_url)
-        location_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-            (By.CSS_SELECTOR, "#locationPicker")
-        ))
-        location_elem.send_keys(Keys.CONTROL + 'a')
-        time.sleep(delay)
-        location_elem.send_keys(Keys.BACK_SPACE)
-        time.sleep(delay)
-        import csv
+        try:
+            self.driver.get(base_url)
+            location_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                (By.CSS_SELECTOR, "#locationPicker")
+            ))
+            location_elem.send_keys(Keys.CONTROL + 'a')
+            time.sleep(delay)
+            location_elem.send_keys(Keys.BACK_SPACE)
+            time.sleep(delay)
+            import csv
 
-        state_in_csv_file = []
-        with open('state_searched.csv', 'rt') as f:
-            reader = csv.reader(f, delimiter=',')
-            for row in reader:
-                for field in row:
-                    state_in_csv_file.append(field)
+            state_in_csv_file = []
+            with open('state_searched.csv', 'rt') as f:
+                reader = csv.reader(f, delimiter=',')
+                for row in reader:
+                    for field in row:
+                        state_in_csv_file.append(field)
 
-        state_set = set(states)
-        list_without = [item for item in state_set if item not in state_in_csv_file]
-        next_state_to_search = list_without[0]
-        time.sleep(delay)
-        location_elem.send_keys(next_state_to_search)
-        # add next_state_to_search to csv
-        with open('state_searched.csv', 'a', newline='') as f:
-            writer = csv.writer(f, delimiter=',')
-            writer.writerow([str(next_state_to_search)])
+            state_set = set(states)
+            list_without = [item for item in state_set if item not in state_in_csv_file]
+            next_state_to_search = list_without[0]
+            time.sleep(delay)
+            location_elem.send_keys('Utah')
+            with open('state_searched.csv', 'a', newline='') as f:
+                writer = csv.writer(f, delimiter=',')
+                writer.writerow([str(next_state_to_search)])
 
-        time.sleep(delay)
-        location_elem.send_keys(Keys.ENTER)
-        time.sleep(delay)
+            time.sleep(delay)
+            location_elem.send_keys(Keys.ENTER)
+            time.sleep(delay)
+        except TimeoutException:
+            print('A time out occored while tring to search for events in a location')
 
     def find_events(self):
+        """Locate and save event links in a page"""
         global next_state_to_search
         global event_state_urls
         global events_link
-        """Find all events url and save in a list"""
         events_link = list()
 
-        next_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-            (By.XPATH,
-             "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/footer/div/div/ul/li[3]/button")
-        ))
-
         try:
-            while next_btn:
+            event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
+                (By.XPATH,
+                 "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
+                 "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
+            ))
+            for link in event_url_elem:
+                events_link.append(link.get_attribute('href'))
+                # save in an outside list of dict
+                event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+                print(link.get_attribute('href'))  #
+            time.sleep(delay)
+
+            while True:
+                next_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                    (By.XPATH,
+                     "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/footer/div/div/ul/li[3]/button")
+                ))
                 mail_sent = 0
                 event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
                     (By.XPATH,
@@ -124,68 +167,55 @@ class EventBriteMailingBot:
                 ))
                 for link in event_url_elem:
                     events_link.append(link.get_attribute('href'))
-                    # save in an outside list of dict
                     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-                    print(link.get_attribute('href'))
+                    print(link.get_attribute('href'))  #
+                time.sleep(delay)
                 next_btn.click()
                 time.sleep(delay)
+
         except StaleElementReferenceException:
-            print('End of page')
+            print('Likely got to the end of page or something else')
         except ElementNotInteractableException:
-            print('Wahala')
+            print('Likely got to the end of page or something else')
         except TimeoutException:
-            print('Ewo, Time out error')
+            print('Time out occured')
         finally:
             event_state_urls[next_state_to_search] = events_link
 
     def open_event(self):
+        """Checks the current timezone and time of the current location and calls send_mail function"""
         global events_link
-        # Check current time of the state being searched, (have a global variable for
-        # state that is currently being searched?
-        #
         state_time_zone = us.states.lookup(next_state_to_search).time_zones
         tzinf = pytz.timezone(state_time_zone[0])
         state_time = datetime.datetime.now(tzinf).time()
-        # while we havent gotten to the end of the list call send mail
-        # to send 4 emails, then sleep till
-        # if FIRST_TIME <= state_time:
-        time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
-        self.send_email()
-        time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
-        self.send_email()
-        time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
-        self.send_email()
-        time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
-        self.send_email()
-        # for url in events_link:
-        #     i = 0
-        #     while i <= 4:
-        #         time_to_send_mail = calc_time_diff_in_secs(FIRST_TIME, state_time)
-        #         time.sleep(time_to_send_mail)
-        #         self.send_email()
+        day = datetime.datetime.now(tzinf).weekday()
 
-        pass
+        if day == 6 or 5:
+            notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday')
+            print(f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday')
+        else:
+            time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
+            self.send_email()
+            time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
+            self.send_email()
+            time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
+            self.send_email()
+            time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
+            self.send_email()
 
     def send_email(self):
         """Goes through list, and sends (4) emails accordingly, sends a whatsapp message also"""
-        # i = 0
-        # while i <= 4 :
-        #     hey = range(len(event_state_urls[next_state_to_search]))
-
-        # for links in event_state_urls[next_state_to_search]:
-        #     i = 0
-        #     while i <= 4:
-        #         # click through and send 4 mails
-        #         pass
-        for i, link in enumerate(event_state_urls[next_state_to_search]):
+        urls_set = set(event_state_urls[next_state_to_search])
+        print('Length in list: ' + str(len(event_state_urls[next_state_to_search])))
+        print('Length in set: ' + str(len(urls_set)))
+        for i, link in enumerate(urls_set):
             if (i + 1) <= 4:
-                # open a link and send mail
                 try:
                     self.driver.get(link)
                     event_name = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.XPATH,
                          "//*[@id='root']/div/div/div[2]/div/div/div/div[1]/div/main/div/div[2]/div/div[1]/div/div[2]/div/div[2]/h1")
-                    ))
+                    )).text
                     contact_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
                          "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
@@ -212,20 +242,22 @@ class EventBriteMailingBot:
                     ))
 
                     email_elem.send_keys("boy@gmail.com")
+                    time.sleep(delay)
 
                     select_reason_elem = Select(self.driver.find_element(By.XPATH, "//*[@id='reason']"))
                     select_reason_elem.select_by_index(1)
                     message_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.XPATH, "//*[@id='message']")
                     ))
+                    time.sleep(delay)
                     EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and was previously a nightclub promoter but after " \
                                      "becoming a Christian" \
                                      "I work at Heavenya where we promote Christian Events so more people in the area " \
                                      "show up. We would " \
-                                     "like to promote the {event_name}. Would you be open to discuss a collaboration " \
+                                     "like to promote the '({})'. Would you be open to discuss a collaboration " \
                                      "opportunity? "
 
-                    message_elem.send_keys(EMAIL_TEMPLATE.format(event_name=event_name.text))
+                    message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
 
                     continue_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
@@ -239,20 +271,29 @@ class EventBriteMailingBot:
                         (By.CSS_SELECTOR,
                          "#event-page > div.contact-org-wrapper > div > div > div > div > div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background > div > nav > div > button")
                     ))
+                    # Todo: make sure to enable the submit_btn
 
                     print('Waiting a while before opening another event')
+                    screen_shot = self.driver.save_screenshot(str(i) + '.png')
+                    time.sleep(delay)
+                    message = 'Successfully contacted this event: ' + link
+                    notify_slack_bot(message, i)
                     time.sleep(10)
                 except TimeoutException:
-                    print('There was a timeout, Chai')
+                    print('There was a timeout')
+                    screen_shot = self.driver.save_screenshot(str(i) + '.png')
+                    time.sleep(delay)
+                    message = 'An error occurred while contacting this event: ' + link
+                    notify_slack_bot(message, screen_shot)
 
 
             else:
-                # delete first 4 items
-                # write them in a csv file
                 try:
+                    new_url_set = set()
                     for i in range(4):
-                        print('popping off searched urls' + event_state_urls[next_state_to_search][i])
+                        print('popping off searched urls: ' + event_state_urls[next_state_to_search][i])
                         event_state_urls[next_state_to_search].pop(i)
+                        urls_set.discard(event_state_urls[next_state_to_search][i])
                 except IndexError:
                     print('calling myself again')
                 break
@@ -270,14 +311,14 @@ class EventBriteMailingBot:
         self.find_events()
         print('calling open_event()')
         self.open_event()
-        print('done !!!!!!!!!!!!!!!!! Joy !!!!!!!!!!!!!!!!!!!1')
+        print('done !')
 
 
 if __name__ == '__main__':
-    list_lenght = len(states)
+    list_length = len(states)
     i = 0
     while True:
-        if i <= list_lenght:
+        if i <= list_length:
             print('Starting!')
             bot = EventBriteMailingBot()
             bot.start()
@@ -285,8 +326,3 @@ if __name__ == '__main__':
             print(i)
         else:
             print('Done')
-
-# import datetime
-#
-# datetime.time(hour=11, minute=00, second=00)
-# len(states)
