@@ -49,11 +49,16 @@ def calc_time_diff_in_secs(myTime, stateTime):
     """Calculates the time difference and returns delta in seconds"""
     delta = datetime.datetime.combine(datetime.date.today(), myTime) \
             - datetime.datetime.combine(datetime.date.today(), stateTime)
-    if delta.total_seconds() < 0:
+    if delta.total_seconds() <= 0:
+        total_sec = delta.total_seconds() + 24 * 60 * 60
+        in_hours = total_sec / 3600
+        notify_slack_bot(message=f"Time to wait before sending: {in_hours} hour(s)")
         print('Time is less; adding up.. ' + str(delta.total_seconds() + 24 * 60 * 60))
-        return delta.total_seconds() + 24 * 60 * 60
+        return total_sec
         # delta.total_seconds() + 24 * 60 * 60
     else:
+        in_hours = delta.total_seconds() / 3600
+        notify_slack_bot(message=f"Time to wait before sending: {in_hours} hour(s)")
         print('Time is okay; time to wait before sending: ' + str(delta.total_seconds()))
         return delta.total_seconds()
         # delta.total_seconds()
@@ -61,7 +66,7 @@ def calc_time_diff_in_secs(myTime, stateTime):
 
 def notify_slack_bot(message, shot=None):
     """Sends a message and or screenshot to a Slack Channel"""
-    client = WebClient(token=os.environ.get("ACCESS_TOKEN"))  # Todo: use env for this
+    client = WebClient(token=os.environ.get("ACCESS_TOKEN"))
 
     try:
         if shot is None:
@@ -134,6 +139,7 @@ class EventBriteMailingBot:
             notify_slack_bot(message='Current state being searched: ' + str(next_state_to_search))
             time.sleep(delay)
         except TimeoutException:
+            notify_slack_bot(message="A network time out error 💔")
             print('A time out occurred while trying to search for events in a location')
 
     def find_events(self):
@@ -159,7 +165,6 @@ class EventBriteMailingBot:
                     (By.XPATH,
                      "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/footer/div/div/ul/li[3]/button")
                 ))
-                mail_sent = 0
                 event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
                     (By.XPATH,
                      "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
@@ -174,10 +179,13 @@ class EventBriteMailingBot:
                 time.sleep(delay)
 
         except StaleElementReferenceException:
+            notify_slack_bot(message="Likely got to the end of page or something else 🤦‍")
             print('Likely got to the end of page or something else')
         except ElementNotInteractableException:
+            notify_slack_bot(message="Likely got to the end of page or something else 🤦‍")
             print('Likely got to the end of page or something else')
         except TimeoutException:
+            notify_slack_bot(message="A network time out error 💔")
             print('Time out occured')
         finally:
             event_state_urls[next_state_to_search] = events_link
@@ -191,7 +199,7 @@ class EventBriteMailingBot:
         day = datetime.datetime.now(tzinf).weekday()
 
         if day >= 5:
-            notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday')
+            notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday 😴🛌')
             print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
             time.sleep(24 * 60 * 60)
         else:
@@ -277,14 +285,14 @@ class EventBriteMailingBot:
                     print('Waiting a while before opening another event')
                     screen_shot = self.driver.save_screenshot(str(i) + '.png')
                     time.sleep(delay)
-                    message = 'Successfully contacted this event: ' + link
+                    message = '✅ Successfully contacted this event: ' + link
                     notify_slack_bot(message, i)
                     time.sleep(10)
                 except TimeoutException:
                     print('There was a timeout')
                     screen_shot = self.driver.save_screenshot(str(i) + '.png')
                     time.sleep(delay)
-                    message = 'An error occurred while contacting this event: ' + link
+                    message = '❌ An error occurred while contacting this event: ' + link
                     notify_slack_bot(message, screen_shot)
 
 
