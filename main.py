@@ -98,7 +98,7 @@ class EventBriteMailingBot:
         self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--no-sandbox")
         self.options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-        self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=self.options)
+        self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=self.options)
         # self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe')  # run this remotely
 
     def location_search(self):
@@ -154,6 +154,7 @@ class EventBriteMailingBot:
                  "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
                  "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
             ))
+            time.sleep(delay)
             for link in event_url_elem:
                 events_link.append(link.get_attribute('href'))
                 event_state_urls[next_state_to_search].append(link.get_attribute('href'))
@@ -250,7 +251,7 @@ class EventBriteMailingBot:
                         (By.XPATH, "//*[@id='email']")
                     ))
 
-                    email_elem.send_keys("boy@gmail.com")  # Todo: Replace with his mail
+                    email_elem.send_keys("event.promotion@heavenya.com")  # Todo: Replace with his mail
                     time.sleep(delay)
 
                     select_reason_elem = Select(self.driver.find_element(By.XPATH, "//*[@id='reason']"))

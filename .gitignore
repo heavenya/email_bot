@@ -226,3 +226,4 @@ cython_debug/
 bla.py
 mainmain.py
 *.png
+compare.py
