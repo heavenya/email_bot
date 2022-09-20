@@ -31,7 +31,7 @@ states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South
 
 base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituality--events/christian"
 
-delay = 10
+delay = 15
 
 events_link = []
 
@@ -193,7 +193,7 @@ class EventBriteMailingBot:
     def open_event(self):
         """Checks the current timezone and time of the current location and calls send_mail function"""
         global events_link
-        state_time_zone = us.states.lookup(next_state_to_search).time_zones
+        state_time_zone = us.states.lookup(str(next_state_to_search)).time_zones
         tzinf = pytz.timezone(state_time_zone[0])
         state_time = datetime.datetime.now(tzinf).time()
         day = datetime.datetime.now(tzinf).weekday()
