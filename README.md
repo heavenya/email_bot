@@ -14,7 +14,7 @@ These instructions will get you a copy of the project up and running on your loc
 
 2. Selenium requires a driver to interface with the chosen browser. Make sure the driver is in your path, you will need to add your `CHROMEDRIVER_PATH` to the `.env` file.
 
-I used the Chrome driver, you can download it [here](https://sites.google.com/a/chromium.org/chromedriver/downloads). You can also download [Edge](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/), [Firefox](https://github.com/mozilla/geckodriver/releases) or [Safari](https://webkit.org/blog/6900/webdriver-support-in-safari-10/). Depends on your preferred browser.
+I used the Chrome driver, you can download it [here](https://sites.google.com/chromium.org/driver/). You can also download [Edge](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/), [Firefox](https://github.com/mozilla/geckodriver/releases) or [Safari](https://webkit.org/blog/6900/webdriver-support-in-safari-10/). Depends on your preferred browser.
 
 ### Usage
 

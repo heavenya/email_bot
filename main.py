@@ -49,9 +49,9 @@ def calc_time_diff_in_secs(myTime, stateTime):
     """Calculates the time difference and returns delta in seconds"""
     delta = datetime.datetime.combine(datetime.date.today(), myTime) \
             - datetime.datetime.combine(datetime.date.today(), stateTime)
-    if delta.total_seconds() <= 0:
+    if delta.total_seconds() < 0:
         print('Time is less; adding up.. ' + str(delta.total_seconds() + 24 * 60 * 60))
-        return delta.total_seconds() + 24 * 60 * 6
+        return delta.total_seconds() + 24 * 60 * 60
         # delta.total_seconds() + 24 * 60 * 60
     else:
         print('Time is okay; time to wait before sending: ' + str(delta.total_seconds()))
@@ -61,7 +61,7 @@ def calc_time_diff_in_secs(myTime, stateTime):
 
 def notify_slack_bot(message, shot=None):
     """Sends a message and or screenshot to a Slack Channel"""
-    client = WebClient(token=os.environ.get("SLACK_KEY")) # Todo: use env for this
+    client = WebClient(token=os.environ.get("ACCESS_TOKEN"))  # Todo: use env for this
 
     try:
         if shot is None:
@@ -123,23 +123,24 @@ class EventBriteMailingBot:
             list_without = [item for item in state_set if item not in state_in_csv_file]
             next_state_to_search = list_without[0]
             time.sleep(delay)
-            location_elem.send_keys('Utah')
+            location_elem.send_keys(next_state_to_search)
             with open('state_searched.csv', 'a', newline='') as f:
                 writer = csv.writer(f, delimiter=',')
                 writer.writerow([str(next_state_to_search)])
 
             time.sleep(delay)
             location_elem.send_keys(Keys.ENTER)
+            print('Current state being searched: ' + str(next_state_to_search))
+            notify_slack_bot(message='Current state being searched: ' + str(next_state_to_search))
             time.sleep(delay)
         except TimeoutException:
-            print('A time out occored while tring to search for events in a location')
+            print('A time out occurred while trying to search for events in a location')
 
     def find_events(self):
         """Locate and save event links in a page"""
         global next_state_to_search
         global event_state_urls
         global events_link
-        events_link = list()
 
         try:
             event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
@@ -149,9 +150,8 @@ class EventBriteMailingBot:
             ))
             for link in event_url_elem:
                 events_link.append(link.get_attribute('href'))
-                # save in an outside list of dict
                 event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-                print(link.get_attribute('href'))  #
+                print(link.get_attribute('href'))
             time.sleep(delay)
 
             while True:
@@ -190,9 +190,10 @@ class EventBriteMailingBot:
         state_time = datetime.datetime.now(tzinf).time()
         day = datetime.datetime.now(tzinf).weekday()
 
-        if day == 6 or 5:
+        if day >= 5:
             notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday')
-            print(f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday')
+            print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
+            time.sleep(24 * 60 * 60)
         else:
             time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
             self.send_email()
@@ -235,13 +236,13 @@ class EventBriteMailingBot:
                     name_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.XPATH, "//*[@id='name']")
                     ))
-                    name_elem.send_keys('Muna')
+                    name_elem.send_keys('Travis Mitchell')
 
                     email_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.XPATH, "//*[@id='email']")
                     ))
 
-                    email_elem.send_keys("boy@gmail.com")
+                    email_elem.send_keys("boy@gmail.com")  # Todo: Replace with his mail
                     time.sleep(delay)
 
                     select_reason_elem = Select(self.driver.find_element(By.XPATH, "//*[@id='reason']"))
