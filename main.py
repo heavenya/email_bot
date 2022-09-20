@@ -31,7 +31,7 @@ states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South
 
 base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituality--events/christian"
 
-delay = 2
+delay = 0
 
 events_link = []
 
