@@ -31,12 +31,12 @@ states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South
 
 base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituality--events/christian"
 
-delay = 15
+delay = 2
 
 events_link = []
 
 event_state_urls = defaultdict(list)
-
+urls_set = set()
 next_state_to_search = ''
 
 FIRST_TIME = datetime.time(11, 00, 00)
@@ -54,13 +54,13 @@ def calc_time_diff_in_secs(myTime, stateTime):
         in_hours = total_sec / 3600
         notify_slack_bot(message=f"Time to wait before sending: {in_hours} hour(s)")
         print('Time is less; adding up.. ' + str(delta.total_seconds() + 24 * 60 * 60))
-        return total_sec
+        return 5
         # delta.total_seconds() + 24 * 60 * 60
     else:
         in_hours = delta.total_seconds() / 3600
         notify_slack_bot(message=f"Time to wait before sending: {in_hours} hour(s)")
         print('Time is okay; time to wait before sending: ' + str(delta.total_seconds()))
-        return delta.total_seconds()
+        return 5
         # delta.total_seconds()
 
 
@@ -145,7 +145,18 @@ class EventBriteMailingBot:
         global next_state_to_search
         global event_state_urls
         global events_link
-
+        global urls_set
+        event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
+            (By.XPATH,
+             "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
+             "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
+        ))
+        time.sleep(delay)
+        for link in event_url_elem:
+            events_link.append(link.get_attribute('href'))
+            event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+            print(link.get_attribute('href'))
+        time.sleep(delay)
         try:
             event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
                 (By.XPATH,
@@ -172,6 +183,7 @@ class EventBriteMailingBot:
                 for link in event_url_elem:
                     events_link.append(link.get_attribute('href'))
                     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+                    urls_set.add(link.get_attribute('href'))
                     print(link.get_attribute('href'))  #
                 time.sleep(delay)
                 next_btn.click()
@@ -213,7 +225,8 @@ class EventBriteMailingBot:
 
     def send_email(self):
         """Goes through list, and sends (4) emails accordingly, sends a whatsapp message also"""
-        urls_set = set(event_state_urls[next_state_to_search])
+        global urls_set
+        # urls_set = set(event_state_urls[next_state_to_search])
         print('Length in list: ' + str(len(event_state_urls[next_state_to_search])))
         print('Length in set: ' + str(len(urls_set)))
         for i, link in enumerate(urls_set):
@@ -289,10 +302,10 @@ class EventBriteMailingBot:
                     time.sleep(10)
                 except TimeoutException:
                     print('There was a timeout')
-                    screen_shot = self.driver.save_screenshot(str(i) + '.png')
+                    # screen_shot = self.driver.save_screenshot(str(i) + '.png')
                     time.sleep(delay)
                     message = '❌ An error occurred while contacting this event: ' + link
-                    notify_slack_bot(message, screen_shot)
+                    notify_slack_bot(message)
 
 
             else:
