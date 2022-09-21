@@ -170,6 +170,8 @@ class EventBriteMailingBot:
             for link in event_url_elem:
                 events_link.append(link.get_attribute('href'))
                 event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+                time.sleep(2)
+                notify_slack_bot(message=f"urls found: {link.get_attribute('href')}")
                 print(link.get_attribute('href'))
             time.sleep(delay)
 
