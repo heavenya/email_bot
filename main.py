@@ -149,7 +149,7 @@ class EventBriteMailingBot:
         global event_state_urls
         global events_link
         global urls_set
-        event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
+        event_url_elem = WebDriverWait(self.driver, 60).until(EC.visibility_of_all_elements_located(
             (By.XPATH,
              "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
              "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
