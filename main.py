@@ -102,7 +102,7 @@ class EventBriteMailingBot:
         self.options.add_argument("--no-sandbox")
         # self.options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
         # self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=self.options)
-        self.driver = webdriver.Chrome(executable_path=r'c:\Users\travis\chromedriver.exe')  # run this remotely
+        self.driver = webdriver.Chrome(executable_path=r'/Users/Travis/Desktop/Practice/Skills/#2 Code /3. Extra Code/Coding Tools/Chrome Driver/chromedriver')  # run this remotely
 
     def location_search(self):
         """Goes through states list, searching for events not in already searched csv"""
