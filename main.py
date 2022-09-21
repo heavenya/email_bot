@@ -209,6 +209,8 @@ class EventBriteMailingBot:
     def open_event(self):
         """Checks the current timezone and time of the current location and calls send_mail function"""
         global events_link
+        print(next_state_to_search)
+        print(type(next_state_to_search))
         state_time_zone = us.states.lookup(str(next_state_to_search)).time_zones
         tzinf = pytz.timezone(state_time_zone[0])
         state_time = datetime.datetime.now(tzinf).time()
