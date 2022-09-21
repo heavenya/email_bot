@@ -18,9 +18,14 @@ import os
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+# Create a virtual environment
+# source/bin/activate
+# pip install -r requirements.txt
+# python main.py
+
 states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South Carolina', 'West Virginia', 'Georgia',
           'Oklahoma', 'North Carolina', 'Texas', 'Utah', 'Kentucky', 'Virginia', 'Missouri', 'South Dakota', 'Ohio',
-          'New Mexico', 'Iowa', 'Kansas', 'New Jerse', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
+          'New Mexico', 'Iowa', 'Kansas', 'New Jersey', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
           'Arizona',
           'District of Columbia', 'Michigan', 'North Dakota', 'Pennsylvania', 'Delaware', 'Idaho', 'Illinois',
           'California',
@@ -95,9 +100,9 @@ class EventBriteMailingBot:
         self.options.add_argument('--disable-gpu')
         self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--no-sandbox")
-        self.options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-        self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=self.options)
-        # self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe')  # run this remotely
+        # self.options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+        # self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=self.options)
+        self.driver = webdriver.Chrome(executable_path=r'c:\Users\travis\chromedriver.exe')  # run this remotely
 
     def location_search(self):
         """Goes through states list, searching for events not in already searched csv"""
