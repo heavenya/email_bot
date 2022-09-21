@@ -18,14 +18,9 @@ import os
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
-# Create a virtual environment
-# source/bin/activate
-# pip install -r requirements.txt
-# python main.py
-
 states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South Carolina', 'West Virginia', 'Georgia',
           'Oklahoma', 'North Carolina', 'Texas', 'Utah', 'Kentucky', 'Virginia', 'Missouri', 'South Dakota', 'Ohio',
-          'New Mexico', 'Iowa', 'Kansas', 'New Jersey', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
+          'New Mexico', 'Iowa', 'Kansas', 'New Jerse', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
           'Arizona',
           'District of Columbia', 'Michigan', 'North Dakota', 'Pennsylvania', 'Delaware', 'Idaho', 'Illinois',
           'California',
@@ -95,7 +90,6 @@ class EventBriteMailingBot:
 
     def __init__(self):
         """Initialization"""
-<<<<<<< HEAD
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
@@ -104,16 +98,6 @@ class EventBriteMailingBot:
         options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
         self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
         # self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe')  # run this remotely
-=======
-        self.options = Options()
-        self.options.add_argument('--headless')
-        self.options.add_argument('--disable-gpu')
-        self.options.add_argument("--disable-dev-shm-usage")
-        self.options.add_argument("--no-sandbox")
-        # self.options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-        # self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=self.options)
-        self.driver = webdriver.Chrome(executable_path=r'/Users/Travis/Desktop/Practice/Skills/#2 Code /3. Extra Code/Coding Tools/Chrome Driver/chromedriver')  # run this remotely
->>>>>>> b895ee21562abf792f2178675b5f3981df6d4f6e
 
     def location_search(self):
         """Goes through states list, searching for events not in already searched csv"""
@@ -287,11 +271,11 @@ class EventBriteMailingBot:
                         (By.XPATH, "//*[@id='message']")
                     ))
                     time.sleep(delay)
-                    EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and I was previously a nightclub promoter but after " \
-                                     "becoming a Christian " \
+                    EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and was previously a nightclub promoter but after " \
+                                     "becoming a Christian" \
                                      "I work at Heavenya where we promote Christian Events so more people in the area " \
                                      "show up. We would " \
-                                     "like to promote {}. Would you be open to discuss a collaboration " \
+                                     "like to promote the '({})'. Would you be open to discuss a collaboration " \
                                      "opportunity? "
 
                     message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
