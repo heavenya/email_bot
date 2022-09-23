@@ -286,7 +286,7 @@ class EventBriteMailingBot:
                                      "becoming a Christian" \
                                      "I work at Heavenya where we promote Christian Events so more people in the area " \
                                      "show up. We would " \
-                                     "like to promote the '({})'. Would you be open to discuss a collaboration " \
+                                     "like to promote {}. Would you be open to discuss a collaboration " \
                                      "opportunity? "
 
                     message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
