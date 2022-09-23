@@ -33,7 +33,7 @@ states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South
 
 base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituality--events/christian"
 
-delay = 60
+delay = 10
 
 events_link = []
 
@@ -95,12 +95,13 @@ class EventBriteMailingBot:
         options = webdriver.ChromeOptions()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
+        options.add_argument("--window-size=1920,1080")
         options.add_argument("--example-flag")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
         options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        # self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe')  # run this remotely
+        # self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe', options=options)  # run this remotely
 
     def location_search(self):
         """Goes through states list, searching for events not in already searched csv"""
@@ -149,31 +150,33 @@ class EventBriteMailingBot:
         global event_state_urls
         global events_link
         global urls_set
-        # event_url_elem = WebDriverWait(self.driver, 60).until(EC.visibility_of_all_elements_located(
-        #     (By.XPATH,
-        #      "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
-        #      "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
-        # ))
-        # time.sleep(delay)
-        # for link in event_url_elem:
-        #     events_link.append(link.get_attribute('href'))
-        #     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-        #     print(link.get_attribute('href'))
-        # time.sleep(delay)
+        # time.sleep(20)
+        event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
+            (By.XPATH,
+             "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li[*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
+        ))
+
+        time.sleep(delay)
+        for link in event_url_elem:
+            events_link.append(link.get_attribute('href'))
+            urls_set.add(link.get_attribute('href'))
+            event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+            print(link.get_attribute('href'))
+        time.sleep(delay)
         try:
-            event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
-                (By.XPATH,
-                 "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
-                 "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
-            ))
-            time.sleep(delay)
-            for link in event_url_elem:
-                events_link.append(link.get_attribute('href'))
-                event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-                time.sleep(2)
-                notify_slack_bot(message=f"urls found: {link.get_attribute('href')}")
-                print(link.get_attribute('href'))
-            time.sleep(delay)
+            # event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
+            #     (By.XPATH,
+            #      "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
+            #      "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
+            # ))
+            # time.sleep(delay)
+            # for link in event_url_elem:
+            #     events_link.append(link.get_attribute('href'))
+            #     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+            #     time.sleep(2)
+            #     notify_slack_bot(message=f"urls found: {link.get_attribute('href')}")
+            #     print(link.get_attribute('href'))
+            # time.sleep(delay)
 
             while True:
                 next_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
@@ -188,6 +191,7 @@ class EventBriteMailingBot:
                 for link in event_url_elem:
                     events_link.append(link.get_attribute('href'))
                     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+                    urls_set.add(link.get_attribute('href'))
                     urls_set.add(link.get_attribute('href'))
                     print(link.get_attribute('href'))  #
                 time.sleep(delay)
@@ -217,7 +221,7 @@ class EventBriteMailingBot:
         day = datetime.datetime.now(tzinf).weekday()
 
         if day >= 5:
-            notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or monday 😴🛌')
+            notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or saturday 😴🛌')
             print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
             time.sleep(24 * 60 * 60)
         else:
@@ -332,7 +336,7 @@ class EventBriteMailingBot:
 
     def start(self):
         print('maximizing window')
-        self.driver.maximize_window()
+        # self.driver.maximize_window()
         print('Calling location_search()')
         self.location_search()
         print('calling find_events()')
