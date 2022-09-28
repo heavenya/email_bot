@@ -22,7 +22,7 @@ from slack_sdk.errors import SlackApiError
 
 states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South Carolina', 'West Virginia', 'Georgia',
           'Oklahoma', 'North Carolina', 'Texas', 'Utah', 'Kentucky', 'Virginia', 'Missouri', 'South Dakota', 'Ohio',
-          'New Mexico', 'Iowa', 'Kansas', 'New Jerse', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
+          'New Mexico', 'Iowa', 'Kansas', 'New Jersey', 'Florida', 'Indiana', 'Maryland', 'Nebraska', 'Wyoming',
           'Arizona',
           'District of Columbia', 'Michigan', 'North Dakota', 'Pennsylvania', 'Delaware', 'Idaho', 'Illinois',
           'California',
@@ -283,7 +283,7 @@ class EventBriteMailingBot:
                     ))
                     time.sleep(delay)
                     EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and was previously a nightclub promoter but after " \
-                                     "becoming a Christian" \
+                                     "becoming a Christian " \
                                      "I work at Heavenya where we promote Christian Events so more people in the area " \
                                      "show up. We would " \
                                      "like to promote {}. Would you be open to discuss a collaboration " \
