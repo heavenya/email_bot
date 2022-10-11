@@ -281,12 +281,10 @@ class EventBriteMailingBot:
                         (By.XPATH, "//*[@id='message']")
                     ))
                     time.sleep(delay)
-<<<<<<< HEAD
                     EMAIL_TEMPLATE = f"Hi we are Heavenya, a group of digital missionaries that specialize " \
                                      "in the promotion of Christian Events so more people in the area show up. " \
                                      "We would like to promote {}. Would you be open to discuss a " \
                                      "collaboration opportunity? "
-=======
                     EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and was previously a nightclub promoter but after " \
                                      "becoming a Christian " \
                                      "I work at Heavenya where we promote Christian Events so more people in the area " \
@@ -294,7 +292,6 @@ class EventBriteMailingBot:
                                      "like to promote {}. Would you be open to discuss a collaboration " \
                                      "opportunity? "
 
->>>>>>> 1427dff130cd07107d748a5b91e1d34bba9d0294
                     message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
 
                     continue_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
