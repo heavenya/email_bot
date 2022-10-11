@@ -36,6 +36,7 @@ base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituali
 delay = 10
 
 events_link = []
+failed_event_list = []
 
 event_state_urls = defaultdict(list)
 urls_set = set()
@@ -56,14 +57,12 @@ def calc_time_diff_in_secs(myTime, stateTime):
         in_hours = total_sec / 3600
         notify_slack_bot(message=f"Time to wait before sending: {in_hours} hour(s)")
         print('Time is less; adding up.. ' + str(delta.total_seconds() + 24 * 60 * 60))
-        return 5
-        # delta.total_seconds() + 24 * 60 * 60
+        return delta.total_seconds() + 24 * 60 * 60
     else:
         in_hours = delta.total_seconds() / 3600
         notify_slack_bot(message=f"Time to wait before sending: {in_hours} hour(s)")
         print('Time is okay; time to wait before sending: ' + str(delta.total_seconds()))
-        return 5
-        # delta.total_seconds()
+        return delta.total_seconds()
 
 
 def notify_slack_bot(message, shot=None):
@@ -100,8 +99,9 @@ class EventBriteMailingBot:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--no-sandbox")
         options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-        # self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe', options=options)  # run this remotely
+        self.chrome_driver_service = Service(ChromeDriverManager().install())
+        self.driver = webdriver.Chrome(service=self.chrome_driver_service, options=options)
+        # self.driver = webdriver.Chrome(executable_path=r'c:\Users\david\chromedriver.exe', options=options)  # run this remotely
 
     def location_search(self):
         """Goes through states list, searching for events not in already searched csv"""
@@ -150,33 +150,21 @@ class EventBriteMailingBot:
         global event_state_urls
         global events_link
         global urls_set
-        # time.sleep(20)
-        event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
-            (By.XPATH,
-             "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li[*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
-        ))
 
-        time.sleep(delay)
-        for link in event_url_elem:
-            events_link.append(link.get_attribute('href'))
-            urls_set.add(link.get_attribute('href'))
-            event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-            print(link.get_attribute('href'))
-        time.sleep(delay)
         try:
-            # event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
-            #     (By.XPATH,
-            #      "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
-            #      "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
-            # ))
-            # time.sleep(delay)
-            # for link in event_url_elem:
-            #     events_link.append(link.get_attribute('href'))
-            #     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-            #     time.sleep(2)
-            #     notify_slack_bot(message=f"urls found: {link.get_attribute('href')}")
-            #     print(link.get_attribute('href'))
-            # time.sleep(delay)
+            time.sleep(20)
+            event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
+                (By.CSS_SELECTOR,
+                 "#root > div > div.eds-structure__body > div > div > div > div.eds-fixed-bottom-bar-layout__content > div > main > div > div > section.search-base-screen__search-panel > div.search-results-panel-content > div > div > ul > li > div > div > div.search-event-card-rectangle-image > div > div > div > article > div.eds-event-card-content__content-container.eds-l-pad-right-4 > div > div > div.eds-event-card-content__primary-content > a")
+            ))
+
+            time.sleep(delay)
+            for link in event_url_elem:
+                events_link.append(link.get_attribute('href'))
+                urls_set.add(link.get_attribute('href'))
+                event_state_urls[next_state_to_search].append(link.get_attribute('href'))
+                print(link.get_attribute('href'))
+            time.sleep(delay)
 
             while True:
                 next_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
@@ -223,7 +211,16 @@ class EventBriteMailingBot:
         if day >= 5:
             notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or saturday 😴🛌')
             print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
-            time.sleep(24 * 60 * 60)
+            time.sleep(48 * 60 * 60)
+            time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
+            self.send_email()
+            time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
+            self.send_email()
+            time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
+            self.send_email()
+            time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
+            self.send_email()
+            time.sleep(10)
         else:
             time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
             self.send_email()
@@ -235,9 +232,10 @@ class EventBriteMailingBot:
             self.send_email()
 
     def send_email(self):
-        """Goes through list, and sends (4) emails accordingly, sends a whatsapp message also"""
+        """Goes through list, and sends (4) emails accordingly, sends a Slack message also"""
+        ## What should basically happen here is that it should just send for mails and call
+        global failed_event_list
         global urls_set
-        # urls_set = set(event_state_urls[next_state_to_search])
         print('Length in list: ' + str(len(event_state_urls[next_state_to_search])))
         print('Length in set: ' + str(len(urls_set)))
         for i, link in enumerate(urls_set):
@@ -245,19 +243,21 @@ class EventBriteMailingBot:
                 try:
                     self.driver.get(link)
                     event_name = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.XPATH,
-                         "//*[@id='root']/div/div/div[2]/div/div/div/div[1]/div/main/div/div[2]/div/div[1]/div/div[2]/div/div[2]/h1")
+                        (By.CSS_SELECTOR,
+                         "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
                     )).text
                     contact_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
                          "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
                     ))
+                    print(contact_btn)
                     time.sleep(delay)
                     contact_btn.click()
                     contact_org_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
                          "#edsModalContentChildren > main > section:nth-child(2) > div.eds-l-pad-top-3 > button")
                     ))
+                    print(contact_org_btn)
 
                     time.sleep(delay)
                     contact_org_btn.click()
@@ -273,8 +273,7 @@ class EventBriteMailingBot:
                         (By.XPATH, "//*[@id='email']")
                     ))
 
-                    email_elem.send_keys("event.promotion@heavenya.com")  # Todo: Replace with his mail
-                    time.sleep(delay)
+                    email_elem.send_keys("event.promotion@heavenya.com")
 
                     select_reason_elem = Select(self.driver.find_element(By.XPATH, "//*[@id='reason']"))
                     select_reason_elem.select_by_index(1)
@@ -282,6 +281,7 @@ class EventBriteMailingBot:
                         (By.XPATH, "//*[@id='message']")
                     ))
                     time.sleep(delay)
+<<<<<<< Updated upstream
                     EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and was previously a nightclub promoter but after " \
                                      "becoming a Christian " \
                                      "I work at Heavenya where we promote Christian Events so more people in the area " \
@@ -289,12 +289,19 @@ class EventBriteMailingBot:
                                      "like to promote {}. Would you be open to discuss a collaboration " \
                                      "opportunity? "
 
+=======
+                    EMAIL_TEMPLATE = f"Hi we are Heavenya, a group of digital missionaries that specialize " \
+                                     "in the promotion of Christian Events so more people in the area show up. " \
+                                     "We would like to promote {}. Would you be open to discuss a " \
+                                     "collaboration opportunity? "
+>>>>>>> Stashed changes
                     message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
 
                     continue_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
                          "#event-page > div.contact-org-wrapper > div > div > div > div > div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background > div > nav > div > button")
                     ))
+                    print(contact_org_btn)
 
                     continue_btn.click()
                     time.sleep(10)
@@ -303,7 +310,7 @@ class EventBriteMailingBot:
                         (By.CSS_SELECTOR,
                          "#event-page > div.contact-org-wrapper > div > div > div > div > div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background > div > nav > div > button")
                     ))
-                    # Todo: make sure to enable the submit_btn
+                    submit_btn.click()
 
                     print('Waiting a while before opening another event')
                     screen_shot = self.driver.save_screenshot(str(i) + '.png')
@@ -317,15 +324,24 @@ class EventBriteMailingBot:
                     time.sleep(delay)
                     message = '❌ An error occurred while contacting this event: ' + link
                     notify_slack_bot(message)
+                    # Save to retry list
+                    failed_event_list.append(link)
 
 
             else:
                 try:
-                    new_url_set = set()
                     for i in range(4):
                         print('popping off searched urls: ' + event_state_urls[next_state_to_search][i])
                         event_state_urls[next_state_to_search].pop(i)
                         urls_set.discard(event_state_urls[next_state_to_search][i])
+                        # check for failed cevents and append to th set
+                        for url in failed_event_list:
+                            if url in urls_set:
+                                pass
+                            else:
+                                # add to the set
+                                urls_set.add(url)
+                        failed_event_list.clear()
                 except IndexError:
                     print('calling myself again')
                 break

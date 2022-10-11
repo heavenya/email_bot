@@ -1,10 +1,43 @@
 # An Outreach Bot for [Eventbrite](eventbrite.com)
 
-### Hosted on heroku using heroku buildpacks
+### Hosted on ~~heroku using heroku buildpacks~~ GCP Ubuntu VM
 
 ## Getting started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+These instructions will get you a copy of the project up and running on both your local machine and on a server for development and testing purposes.
+
+# Running on  Cloud
+### Upgrade and Update the OS
+1. sudo apt update
+2. sudo apt upgrade
+
+### Install PIP
+1. sudo apt install python3-pip
+### Install some dependency packages
+1. sudo apt install software-properties-common
+2. sudo apt-get install gconf-service libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxss1 libxtst6 libappindicator1 libnss3 libasound2 libatk1.0-0 libc6 ca-certificates fonts-liberation lsb-release xdg-utils wget
+### Clone the repo and cd into it
+1.  git clone https://github.com/heavenya/email_bot.git
+2. cd email_bot
+### Install  venv Package
+1. sudo apt install python3.10-venv
+### Create a virtual environment
+1. python3 -m venv venv
+### Install packages in requirements file
+1. pip install -r requirements.txt
+### Download and install Chrome browser
+1. wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+2. sudo apt install ./google-chrome-stable_current_amd64.deb
+### Export slack ACCESS_TOKEN:
+1. export ACCESS_TOKEN=xoxb-******-*******-********
+### Upgrade Jellyfist package duw to this issue: https://github.com/unitedstates/python-us/issues/65
+1. pip install -Iv jellyfish
+### Run as a background service using nohup
+1. nohup python main.py > test2.log &
+2. ps -fA | grep python
+
+
+# Running on Local
 
 ### Prerequisites
 
