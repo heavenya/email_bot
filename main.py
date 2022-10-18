@@ -33,14 +33,15 @@ states = ['Alabama', 'Mississippi', 'Tennessee', 'Louisiana', 'Arkansas', 'South
 
 base_url = "https://www.eventbrite.com/d/united-states--alabama/paid--spirituality--events/christian"
 
-delay = 10
+delay = 8
 
 events_link = []
 failed_event_list = []
-
+urls_set_to_list = list()
 event_state_urls = defaultdict(list)
 urls_set = set()
 next_state_to_search = ''
+successfull_events_urls = []
 
 FIRST_TIME = datetime.time(11, 00, 00)
 SECOND_TIME = datetime.time(13, 00, 00)
@@ -152,10 +153,15 @@ class EventBriteMailingBot:
         global urls_set
 
         try:
-            time.sleep(20)
+            time.sleep(delay)
             event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
                 (By.CSS_SELECTOR,
-                 "#root > div > div.eds-structure__body > div > div > div > div.eds-fixed-bottom-bar-layout__content > div > main > div > div > section.search-base-screen__search-panel > div.search-results-panel-content > div > div > ul > li > div > div > div.search-event-card-rectangle-image > div > div > div > article > div.eds-event-card-content__content-container.eds-l-pad-right-4 > div > div > div.eds-event-card-content__primary-content > a")
+                 "#root > div > div.eds-structure__body > div > div > div > div.eds-fixed-bottom-bar-layout__content "
+                 "> div > main > div > div > section.search-base-screen__search-panel > "
+                 "div.search-results-panel-content > section > ul > li > div > div > "
+                 "div.search-event-card-rectangle-image > div > div > div > article > "
+                 "div.eds-event-card-content__content-container.eds-l-pad-right-4 > div > div > "
+                 "div.eds-event-card-content__primary-content > a")
             ))
 
             time.sleep(delay)
@@ -179,7 +185,6 @@ class EventBriteMailingBot:
                 for link in event_url_elem:
                     events_link.append(link.get_attribute('href'))
                     event_state_urls[next_state_to_search].append(link.get_attribute('href'))
-                    urls_set.add(link.get_attribute('href'))
                     urls_set.add(link.get_attribute('href'))
                     print(link.get_attribute('href'))  #
                 time.sleep(delay)
@@ -206,6 +211,8 @@ class EventBriteMailingBot:
         state_time_zone = us.states.lookup(str(next_state_to_search)).time_zones
         tzinf = pytz.timezone(state_time_zone[0])
         state_time = datetime.datetime.now(tzinf).time()
+        notify_slack_bot(message=f"Current time zone and time of {next_state_to_search} is {state_time_zone} and {state_time}")
+        print(f"Current time zone and time of {next_state_to_search} is {state_time_zone} and {state_time}")
         day = datetime.datetime.now(tzinf).weekday()
 
         if day >= 5:
@@ -224,6 +231,7 @@ class EventBriteMailingBot:
         else:
             time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
             self.send_email()
+            urls_set_to_list[:] = [x for x in urls_set_to_list if x not in successfull_events_urls]
             time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
             self.send_email()
             time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
@@ -235,17 +243,27 @@ class EventBriteMailingBot:
         """Goes through list, and sends (4) emails accordingly, sends a Slack message also"""
         ## What should basically happen here is that it should just send for mails and call
         global failed_event_list
+        global event_state_urls
         global urls_set
+        global urls_set_to_list
+        global successfull_events_urls
+        urls_set = set(event_state_urls[next_state_to_search])
         print('Length in list: ' + str(len(event_state_urls[next_state_to_search])))
         print('Length in set: ' + str(len(urls_set)))
-        for i, link in enumerate(urls_set):
-            if (i + 1) <= 4:
+        urls_set_to_list = list(urls_set)
+        print('urls_set_to_list ===> ' + str(urls_set_to_list))
+        print('urls_set_to_list: ' + str(len(urls_set_to_list)))
+        for index, link in enumerate(urls_set_to_list.copy()): # use range here?
+            if (index + 1) <= 4:
                 try:
                     self.driver.get(link)
                     event_name = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
-                         "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
+                         "#root > div > div > div.eds-structure__body > div > div > div > "
+                         "div.eds-fixed-bottom-bar-layout__content > div > main > div > div.event-details > "
+                         "div.event-details__wrapper > div.event-details__main > div:nth-child(1) > h1")
                     )).text
+                    time.sleep(delay)
                     contact_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
                          "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
@@ -257,7 +275,7 @@ class EventBriteMailingBot:
                         (By.CSS_SELECTOR,
                          "#edsModalContentChildren > main > section:nth-child(2) > div.eds-l-pad-top-3 > button")
                     ))
-                    print(contact_org_btn)
+                    print(event_name)
 
                     time.sleep(delay)
                     contact_org_btn.click()
@@ -283,20 +301,16 @@ class EventBriteMailingBot:
                     time.sleep(delay)
                     EMAIL_TEMPLATE = f"Hi we are Heavenya, a group of digital missionaries that specialize " \
                                      "in the promotion of Christian Events so more people in the area show up. " \
-                                     "We would like to promote {}. Would you be open to discuss a " \
+                                     "We would like to promote '{}'. Would you be open to discuss a " \
                                      "collaboration opportunity? "
-                    EMAIL_TEMPLATE = f"Hi my name is Travis Mitchell and was previously a nightclub promoter but after " \
-                                     "becoming a Christian " \
-                                     "I work at Heavenya where we promote Christian Events so more people in the area " \
-                                     "show up. We would " \
-                                     "like to promote {}. Would you be open to discuss a collaboration " \
-                                     "opportunity? "
 
                     message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
 
                     continue_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
-                         "#event-page > div.contact-org-wrapper > div > div > div > div > div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background > div > nav > div > button")
+                         "#event-page > div.contact-org-wrapper > div > div > div > div > "
+                         "div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background "
+                         "> div > nav > div > button")
                     ))
                     print(contact_org_btn)
 
@@ -305,40 +319,41 @@ class EventBriteMailingBot:
 
                     submit_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                         (By.CSS_SELECTOR,
-                         "#event-page > div.contact-org-wrapper > div > div > div > div > div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background > div > nav > div > button")
+                         "#event-page > div.contact-org-wrapper > div > div > div > div > "
+                         "div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background "
+                         "> div > nav > div > button")
                     ))
                     submit_btn.click()
 
                     print('Waiting a while before opening another event')
-                    screen_shot = self.driver.save_screenshot(str(i) + '.png')
+                    time.sleep(delay)
+                    screen_shot = self.driver.save_screenshot(str(index) + '.png')
                     time.sleep(delay)
                     message = '✅ Successfully contacted this event: ' + link
-                    notify_slack_bot(message, i)
+                    print(message)
+                    notify_slack_bot(message, index)
+                    # print('removing link: ' + str(link))
+                    # urls_set_to_list.remove(link)
+                    successfull_events_urls.append(link)
                     time.sleep(10)
                 except TimeoutException:
                     print('There was a timeout')
-                    # screen_shot = self.driver.save_screenshot(str(i) + '.png')
+                    # screen_shot = self.driver.save_screenshot(str(index) + '.png')
                     time.sleep(delay)
                     message = '❌ An error occurred while contacting this event: ' + link
                     notify_slack_bot(message)
                     # Save to retry list
-                    failed_event_list.append(link)
-
-
+                    # failed_event_list.append(link)
+                    print(failed_event_list)
             else:
                 try:
-                    for i in range(4):
-                        print('popping off searched urls: ' + event_state_urls[next_state_to_search][i])
-                        event_state_urls[next_state_to_search].pop(i)
-                        urls_set.discard(event_state_urls[next_state_to_search][i])
-                        # check for failed cevents and append to th set
-                        for url in failed_event_list:
-                            if url in urls_set:
-                                pass
-                            else:
-                                # add to the set
-                                urls_set.add(url)
-                        failed_event_list.clear()
+                    for h in range(4):
+                        print('popping off searched urls: ' + event_state_urls[next_state_to_search][h])
+                        event_state_urls[next_state_to_search].pop(h)
+                        urls_set_to_list.pop(h)
+                        # urls_set.discard(event_state_urls[next_state_to_search][h])
+                except ValueError:
+                    print('value not present')
                 except IndexError:
                     print('calling myself again')
                 break
