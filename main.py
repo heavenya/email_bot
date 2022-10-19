@@ -218,24 +218,32 @@ class EventBriteMailingBot:
         if day >= 5:
             notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or saturday 😴🛌')
             print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
+            self.driver.quit()
             time.sleep(48 * 60 * 60)
             time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
             self.send_email()
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
             self.send_email()
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
             self.send_email()
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
             self.send_email()
             time.sleep(10)
         else:
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
             self.send_email()
-            urls_set_to_list[:] = [x for x in urls_set_to_list if x not in successfull_events_urls]
+            # urls_set_to_list[:] = [x for x in urls_set_to_list if x not in successfull_events_urls]
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
             self.send_email()
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
             self.send_email()
+            self.driver.quit()
             time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
             self.send_email()
 
