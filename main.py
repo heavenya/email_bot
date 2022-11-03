@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-
+import csv
 import datetime as datetime
 import pytz
 import us
@@ -93,7 +93,7 @@ class EventBriteMailingBot:
     def __init__(self):
         """Initialization"""
         options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
+        # options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--example-flag")
@@ -118,7 +118,6 @@ class EventBriteMailingBot:
             time.sleep(delay)
             location_elem.send_keys(Keys.BACK_SPACE)
             time.sleep(delay)
-            import csv
 
             state_in_csv_file = []
             with open('state_searched.csv', 'rt') as f:
@@ -151,6 +150,7 @@ class EventBriteMailingBot:
         global event_state_urls
         global events_link
         global urls_set
+        global urls_set_to_list
 
         try:
             time.sleep(delay)
@@ -171,16 +171,28 @@ class EventBriteMailingBot:
                 event_state_urls[next_state_to_search].append(link.get_attribute('href'))
                 print(link.get_attribute('href'))
             time.sleep(delay)
+            print('Going to while true for next button loop')
 
-            while True:
+            next_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                (By.XPATH,
+                 "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/footer/div/div/ul/li[3]/button")
+            ))
+
+            if next_btn:
+                print('Currently inside the loop')
                 next_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
                     (By.XPATH,
                      "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/footer/div/div/ul/li[3]/button")
                 ))
+                print('next button: ' + str(next_btn))
                 event_url_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_all_elements_located(
-                    (By.XPATH,
-                     "//*[@id='root']/div/div[2]/div/div/div/div[1]/div/main/div/div/section[1]/div[1]/div/ul/li["
-                     "*]/div/div/div[1]/div/div/div/article/div[2]/div/div/div[1]/a")
+                    (By.CSS_SELECTOR,
+                     "#root > div > div.eds-structure__body > div > div > div > div.eds-fixed-bottom-bar-layout__content "
+                     "> div > main > div > div > section.search-base-screen__search-panel > "
+                     "div.search-results-panel-content > section > ul > li > div > div > "
+                     "div.search-event-card-rectangle-image > div > div > div > article > "
+                     "div.eds-event-card-content__content-container.eds-l-pad-right-4 > div > div > "
+                     "div.eds-event-card-content__primary-content > a")
                 ))
                 for link in event_url_elem:
                     events_link.append(link.get_attribute('href'))
@@ -202,10 +214,14 @@ class EventBriteMailingBot:
             print('Time out occured')
         finally:
             event_state_urls[next_state_to_search] = events_link
+            # urls_set = set(event_state_urls[next_state_to_search])
+            # urls_set_to_list = list(urls_set)
 
     def open_event(self):
         """Checks the current timezone and time of the current location and calls send_mail function"""
         global events_link
+        global urls_set_to_list
+        global urls_set
         print(next_state_to_search)
         print(type(next_state_to_search))
         state_time_zone = us.states.lookup(str(next_state_to_search)).time_zones
@@ -215,37 +231,46 @@ class EventBriteMailingBot:
         print(f"Current time zone and time of {next_state_to_search} is {state_time_zone} and {state_time}")
         day = datetime.datetime.now(tzinf).weekday()
 
-        if day >= 5:
-            notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or saturday 😴🛌')
-            print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
-            self.driver.quit()
-            time.sleep(48 * 60 * 60)
-            time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
-            self.send_email()
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
-            self.send_email()
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
-            self.send_email()
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
-            self.send_email()
-            time.sleep(10)
+        my_own_set = set(event_state_urls[next_state_to_search])
+        print('Urls set to list value in open event function:  '+str(len(my_own_set)))
+        if len(my_own_set) != 0:
+            if day >= 5:
+                notify_slack_bot(message=f'Im gonna sleep for 24 hours as today in {tzinf} is sunday or saturday 😴🛌')
+                print(f'Im gonna sleep for 24 hours as today in {tzinf} is Saturday or Sunday')
+                # self.driver.quit()
+                time.sleep(48 * 60 * 60)
+                time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
+                self.send_email()
+                # self.driver.quit()
+                time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
+                self.send_email()
+                # self.driver.quit()
+                time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
+                self.send_email()
+                # self.driver.quit()
+                time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
+                self.send_email()
+                time.sleep(10)
+            else:
+                # self.driver.quit()
+                print('browser quit')
+                # time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
+                # print('calling send mail afeter broser quit')
+                # self.driver.launch_app()
+                self.send_email()
+                # urls_set_to_list[:] = [x for x in urls_set_to_list if x not in successfull_events_urls]
+                # self.driver.quit()
+                time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
+                self.send_email()
+                # self.driver.quit()
+                time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
+                self.send_email()
+                # self.driver.quit()
+                time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
+                self.send_email()
         else:
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(FIRST_TIME, state_time))
-            self.send_email()
-            # urls_set_to_list[:] = [x for x in urls_set_to_list if x not in successfull_events_urls]
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(SECOND_TIME, state_time))
-            self.send_email()
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(THIRD_TIME, state_time))
-            self.send_email()
-            self.driver.quit()
-            time.sleep(calc_time_diff_in_secs(FOURTH_TIME, state_time))
-            self.send_email()
+            # continue
+            print('done')
 
     def send_email(self):
         """Goes through list, and sends (4) emails accordingly, sends a Slack message also"""
@@ -256,94 +281,116 @@ class EventBriteMailingBot:
         global urls_set_to_list
         global successfull_events_urls
         urls_set = set(event_state_urls[next_state_to_search])
+        urls_set_to_list = list(urls_set)
         print('Length in list: ' + str(len(event_state_urls[next_state_to_search])))
         print('Length in set: ' + str(len(urls_set)))
-        urls_set_to_list = list(urls_set)
         print('urls_set_to_list ===> ' + str(urls_set_to_list))
         print('urls_set_to_list: ' + str(len(urls_set_to_list)))
         for index, link in enumerate(urls_set_to_list.copy()): # use range here?
-            if (index + 1) <= 4:
+            if (index + 1) <= 2:
                 try:
-                    self.driver.get(link)
-                    event_name = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "#root > div > div > div.eds-structure__body > div > div > div > "
-                         "div.eds-fixed-bottom-bar-layout__content > div > main > div > div.event-details > "
-                         "div.event-details__wrapper > div.event-details__main > div:nth-child(1) > h1")
-                    )).text
-                    time.sleep(delay)
-                    contact_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
-                    ))
-                    print(contact_btn)
-                    time.sleep(delay)
-                    contact_btn.click()
-                    contact_org_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "#edsModalContentChildren > main > section:nth-child(2) > div.eds-l-pad-top-3 > button")
-                    ))
-                    print(event_name)
+                    # Start here.
+                    # check if the url to be contacted is in the csv file.
+                    url_in_csv_file = []
+                    with open('url_searched.csv', 'rt') as f:
+                        reader = csv.reader(f, delimiter=',')
+                        for row in reader:
+                            for field in row:
+                                url_in_csv_file.append(field)
 
-                    time.sleep(delay)
-                    contact_org_btn.click()
+                    # state_set = set(states)
+                    # list_without = [item for item in state_set if item not in state_in_csv_file]
+                    # next_state_to_search = list_without[0]
+                    # time.sleep(delay)
+                    # location_elem.send_keys(next_state_to_search)
 
-                    time.sleep(delay)
+                    # Stop here
+                    if link in url_in_csv_file:
+                        continue
+                    else:
+                        self.driver.get(link)
+                        event_name = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.CSS_SELECTOR,
+                             "#root > div > div > div.eds-structure__body > div > div > div > "
+                             "div.eds-fixed-bottom-bar-layout__content > div > main > div > div.event-details > "
+                             "div.event-details__wrapper > div.event-details__main > div:nth-child(1) > h1")
+                        )).text
+                        time.sleep(delay)
+                        contact_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.CSS_SELECTOR,
+                             "#listings-root__organizer-panel > section > div.css-74fzkp > ul > li:nth-child(2) > button")
+                        ))
+                        print(contact_btn)
+                        time.sleep(delay)
+                        contact_btn.click()
+                        contact_org_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.CSS_SELECTOR,
+                             "#edsModalContentChildren > main > section:nth-child(2) > div.eds-l-pad-top-3 > button")
+                        ))
+                        print(event_name)
 
-                    name_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.XPATH, "//*[@id='name']")
-                    ))
-                    name_elem.send_keys('Travis Mitchell')
+                        time.sleep(delay)
+                        contact_org_btn.click()
 
-                    email_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.XPATH, "//*[@id='email']")
-                    ))
+                        time.sleep(delay)
 
-                    email_elem.send_keys("event.promotion@heavenya.com")
+                        name_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.XPATH, "//*[@id='name']")
+                        ))
+                        name_elem.send_keys('Travis Mitchell')
 
-                    select_reason_elem = Select(self.driver.find_element(By.XPATH, "//*[@id='reason']"))
-                    select_reason_elem.select_by_index(1)
-                    message_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.XPATH, "//*[@id='message']")
-                    ))
-                    time.sleep(delay)
-                    EMAIL_TEMPLATE = f"Hi we are Heavenya, a group of digital missionaries that specialize " \
-                                     "in the promotion of Christian Events so more people in the area show up. " \
-                                     "We would like to promote '{}'. Would you be open to discuss a " \
-                                     "collaboration opportunity? "
+                        email_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.XPATH, "//*[@id='email']")
+                        ))
 
-                    message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
+                        email_elem.send_keys("event.promotion@heavenya.com")
 
-                    continue_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "#event-page > div.contact-org-wrapper > div > div > div > div > "
-                         "div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background "
-                         "> div > nav > div > button")
-                    ))
-                    print(contact_org_btn)
+                        select_reason_elem = Select(self.driver.find_element(By.XPATH, "//*[@id='reason']"))
+                        select_reason_elem.select_by_index(1)
+                        message_elem = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.XPATH, "//*[@id='message']")
+                        ))
+                        time.sleep(delay)
+                        EMAIL_TEMPLATE = f"Hi we are Heavenya, a group of digital missionaries that specialize " \
+                                         "in the promotion of Christian Events so more people in the area show up. " \
+                                         "We would like to promote '{}'. Would you be open to discuss a " \
+                                         "collaboration opportunity? "
 
-                    continue_btn.click()
-                    time.sleep(10)
+                        message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
 
-                    submit_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
-                        (By.CSS_SELECTOR,
-                         "#event-page > div.contact-org-wrapper > div > div > div > div > "
-                         "div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background "
-                         "> div > nav > div > button")
-                    ))
-                    submit_btn.click()
+                        continue_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.CSS_SELECTOR,
+                             "#event-page > div.contact-org-wrapper > div > div > div > div > "
+                             "div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background "
+                             "> div > nav > div > button")
+                        ))
+                        print(contact_org_btn)
 
-                    print('Waiting a while before opening another event')
-                    time.sleep(delay)
-                    screen_shot = self.driver.save_screenshot(str(index) + '.png')
-                    time.sleep(delay)
-                    message = '✅ Successfully contacted this event: ' + link
-                    print(message)
-                    notify_slack_bot(message, index)
-                    # print('removing link: ' + str(link))
-                    # urls_set_to_list.remove(link)
-                    successfull_events_urls.append(link)
-                    time.sleep(10)
+                        continue_btn.click()
+                        time.sleep(10)
+
+                        submit_btn = WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(
+                            (By.CSS_SELECTOR,
+                             "#event-page > div.contact-org-wrapper > div > div > div > div > "
+                             "div.eds-collapsible-pane-layout > div > div > main > div > div.eds-modal__footer-background "
+                             "> div > nav > div > button")
+                        ))
+                        submit_btn.click()
+
+                        print('Waiting a while before opening another event')
+                        time.sleep(delay)
+                        screen_shot = self.driver.save_screenshot(str(index) + '.png')
+                        time.sleep(delay)
+                        message = '✅ Successfully contacted this event: ' + link
+                        print(message)
+                        notify_slack_bot(message, index)
+                        with open('url_searched.csv', 'a', newline='') as f:
+                            writer = csv.writer(f, delimiter=',')
+                            writer.writerow([str(link)])
+                        # print('removing link: ' + str(link))
+                        # urls_set_to_list.remove(link)
+                        successfull_events_urls.append(link)
+                        time.sleep(10)
                 except TimeoutException:
                     print('There was a timeout')
                     # screen_shot = self.driver.save_screenshot(str(index) + '.png')
@@ -353,18 +400,28 @@ class EventBriteMailingBot:
                     # Save to retry list
                     # failed_event_list.append(link)
                     print(failed_event_list)
-            else:
-                try:
-                    for h in range(4):
-                        print('popping off searched urls: ' + event_state_urls[next_state_to_search][h])
-                        event_state_urls[next_state_to_search].pop(h)
-                        urls_set_to_list.pop(h)
-                        # urls_set.discard(event_state_urls[next_state_to_search][h])
-                except ValueError:
-                    print('value not present')
-                except IndexError:
-                    print('calling myself again')
-                break
+
+            # else:
+            try:
+                print('successfull event lenght: '+ str(len(successfull_events_urls)))
+                print('urls set to list in else: '+ str(urls_set_to_list))
+                for url in successfull_events_urls:
+                    if url in urls_set_to_list:
+                        print('url to be removed in urls_set_to_list:  '+ str(url))
+                        event_state_urls[next_state_to_search].remove(url)
+                        urls_set_to_list.remove(url)
+                    # else:
+                    #     pass
+                # for h in range(4):
+                #     print('popping off searched urls: ' + event_state_urls[next_state_to_search][h])
+                #     event_state_urls[next_state_to_search].pop(h)
+                #     urls_set_to_list.remove(event_state_urls[next_state_to_search][h])
+                    # urls_set.discard(event_state_urls[next_state_to_search][h])
+            except ValueError:
+                print('value not present')
+            except IndexError:
+                print('calling myself again')
+            break
 
     def save_events_mailed(self):
         """Save mailed events in a csv file"""
