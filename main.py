@@ -93,7 +93,7 @@ class EventBriteMailingBot:
     def __init__(self):
         """Initialization"""
         options = webdriver.ChromeOptions()
-        # options.add_argument('--headless')
+        options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--example-flag")
@@ -287,7 +287,7 @@ class EventBriteMailingBot:
         print('urls_set_to_list ===> ' + str(urls_set_to_list))
         print('urls_set_to_list: ' + str(len(urls_set_to_list)))
         for index, link in enumerate(urls_set_to_list.copy()): # use range here?
-            if (index + 1) <= 2:
+            if (index + 1) <= 4:
                 try:
                     # Start here.
                     # check if the url to be contacted is in the csv file.
@@ -353,7 +353,7 @@ class EventBriteMailingBot:
                         time.sleep(delay)
                         EMAIL_TEMPLATE = f"Hi we are Heavenya, a group of digital missionaries that specialize " \
                                          "in the promotion of Christian Events so more people in the area show up. " \
-                                         "We would like to promote '{}'. Would you be open to discuss a " \
+                                         "We would like to promote {}. Would you be open to discuss a " \
                                          "collaboration opportunity? "
 
                         message_elem.send_keys(EMAIL_TEMPLATE.format(event_name))
@@ -401,27 +401,27 @@ class EventBriteMailingBot:
                     # failed_event_list.append(link)
                     print(failed_event_list)
 
-            # else:
-            try:
-                print('successfull event lenght: '+ str(len(successfull_events_urls)))
-                print('urls set to list in else: '+ str(urls_set_to_list))
-                for url in successfull_events_urls:
-                    if url in urls_set_to_list:
-                        print('url to be removed in urls_set_to_list:  '+ str(url))
-                        event_state_urls[next_state_to_search].remove(url)
-                        urls_set_to_list.remove(url)
-                    # else:
-                    #     pass
-                # for h in range(4):
-                #     print('popping off searched urls: ' + event_state_urls[next_state_to_search][h])
-                #     event_state_urls[next_state_to_search].pop(h)
-                #     urls_set_to_list.remove(event_state_urls[next_state_to_search][h])
-                    # urls_set.discard(event_state_urls[next_state_to_search][h])
-            except ValueError:
-                print('value not present')
-            except IndexError:
-                print('calling myself again')
-            break
+            else:
+                try:
+                    print('successfull event lenght: '+ str(len(successfull_events_urls)))
+                    print('urls set to list in else: '+ str(urls_set_to_list))
+                    for url in successfull_events_urls:
+                        if url in urls_set_to_list:
+                            print('url to be removed in urls_set_to_list:  '+ str(url))
+                            event_state_urls[next_state_to_search].remove(url)
+                            urls_set_to_list.remove(url)
+                        # else:
+                        #     pass
+                    # for h in range(4):
+                    #     print('popping off searched urls: ' + event_state_urls[next_state_to_search][h])
+                    #     event_state_urls[next_state_to_search].pop(h)
+                    #     urls_set_to_list.remove(event_state_urls[next_state_to_search][h])
+                        # urls_set.discard(event_state_urls[next_state_to_search][h])
+                except ValueError:
+                    print('value not present')
+                except IndexError:
+                    print('calling myself again')
+                break
 
     def save_events_mailed(self):
         """Save mailed events in a csv file"""
