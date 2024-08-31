@@ -6,7 +6,7 @@
 
 These instructions will get you a copy of the project up and running on both your local machine and on a server for development and testing purposes.
 
-# Running on  Cloud
+# Running on Google Cloud VM Instance Must Be Redployed
 ### Upgrade and Update the OS
 1. sudo apt update
 2. sudo apt upgrade
